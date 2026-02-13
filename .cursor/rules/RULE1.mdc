@@ -1,0 +1,6 @@
+---
+alwaysApply: true
+---
+
+Read docs/TECHSPEC.md and docs/STRUCTURE.md before conducting your work.
+개발 후 디렉토리 구조가 변경될 시 반드시 docs/STRUCTURE.md에 변경 내용 명시

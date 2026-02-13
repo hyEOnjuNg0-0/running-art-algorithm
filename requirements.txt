@@ -1,0 +1,19 @@
+# UI
+streamlit>=1.28.0
+streamlit-drawable-canvas>=0.9.3
+
+# 지도 시각화
+folium>=0.15.0
+streamlit-folium>=0.15.0
+
+# 지도 데이터
+osmnx>=1.6.0
+networkx>=3.2.0
+
+# 수치 계산
+numpy>=1.24.0
+scipy>=1.11.0
+
+# 테스트
+pytest>=7.4.0
+pytest-cov>=4.1.0
