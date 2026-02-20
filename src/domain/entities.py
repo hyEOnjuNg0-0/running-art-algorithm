@@ -11,9 +11,18 @@ class ShapeType(Enum):
     """미리 정의된 도형 템플릿 타입"""
     HEART = "heart"
     CIRCLE = "circle"
-    SQUARE = "square"
-    TRIANGLE = "triangle"
     STAR = "star"
+    # 숫자 템플릿
+    DIGIT_0 = "digit_0"
+    DIGIT_1 = "digit_1"
+    DIGIT_2 = "digit_2"
+    DIGIT_3 = "digit_3"
+    DIGIT_4 = "digit_4"
+    DIGIT_5 = "digit_5"
+    DIGIT_6 = "digit_6"
+    DIGIT_7 = "digit_7"
+    DIGIT_8 = "digit_8"
+    DIGIT_9 = "digit_9"
     CUSTOM = "custom"  # 사용자 직접 그리기
 
 
