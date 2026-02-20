@@ -52,6 +52,15 @@ RAcourse-Algorithm/
 │   │                                   # - 사용자 입력 처리 (단순화, 스무딩)
 │   │                                   # - 도형 길이 계산, 재샘플링
 │   │
+│   ├── cost/                           # 비용 함수 레이어
+│   │   ├── __init__.py                 # 모듈 초기화 및 공개 API
+│   │   └── cost_function.py            # 비용 함수 구현
+│   │                                   # - ShapeDistanceCalculator: Edge-Curve 거리 계산
+│   │                                   # - LengthPenaltyCalculator: 경로 길이 페널티
+│   │                                   # - CrossingPenaltyCalculator: 횡단보도 페널티
+│   │                                   # - CostCalculator: 통합 비용 계산기
+│   │                                   # - CostResult: 비용 계산 결과 데이터
+│   │
 │   ├── domain/                         # 도메인 레이어 (핵심 비즈니스 로직)
 │   │   ├── __init__.py
 │   │   └── entities.py                 # 도메인 엔티티 정의
@@ -86,5 +95,6 @@ RAcourse-Algorithm/
     ├── test_entities.py                # 도메인 엔티티 테스트
     ├── test_data_entities.py           # 데이터 레이어 엔티티 테스트
     ├── test_cache_service.py           # 캐싱 서비스 테스트
-    └── test_shape.py                   # 도형 처리 테스트
+    ├── test_shape.py                   # 도형 처리 테스트
+    └── test_cost_function.py           # 비용 함수 테스트
 
