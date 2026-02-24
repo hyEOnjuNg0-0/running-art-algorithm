@@ -45,9 +45,17 @@ def _render_shape_section():
     shape_options = {
         ShapeType.HEART.value: "❤️ 하트",
         ShapeType.CIRCLE.value: "⭕ 원",
-        ShapeType.SQUARE.value: "⬜ 사각형",
-        ShapeType.TRIANGLE.value: "🔺 삼각형",
         ShapeType.STAR.value: "⭐ 별",
+        ShapeType.DIGIT_0.value: "0️⃣ 숫자 0",
+        ShapeType.DIGIT_1.value: "1️⃣ 숫자 1",
+        ShapeType.DIGIT_2.value: "2️⃣ 숫자 2",
+        ShapeType.DIGIT_3.value: "3️⃣ 숫자 3",
+        ShapeType.DIGIT_4.value: "4️⃣ 숫자 4",
+        ShapeType.DIGIT_5.value: "5️⃣ 숫자 5",
+        ShapeType.DIGIT_6.value: "6️⃣ 숫자 6",
+        ShapeType.DIGIT_7.value: "7️⃣ 숫자 7",
+        ShapeType.DIGIT_8.value: "8️⃣ 숫자 8",
+        ShapeType.DIGIT_9.value: "9️⃣ 숫자 9",
         ShapeType.CUSTOM.value: "✏️ 직접 그리기",
     }
     
@@ -241,9 +249,17 @@ def _render_search_button(on_search: Optional[Callable]):
     shape_names = {
         ShapeType.HEART.value: "하트",
         ShapeType.CIRCLE.value: "원",
-        ShapeType.SQUARE.value: "사각형",
-        ShapeType.TRIANGLE.value: "삼각형",
         ShapeType.STAR.value: "별",
+        ShapeType.DIGIT_0.value: "숫자 0",
+        ShapeType.DIGIT_1.value: "숫자 1",
+        ShapeType.DIGIT_2.value: "숫자 2",
+        ShapeType.DIGIT_3.value: "숫자 3",
+        ShapeType.DIGIT_4.value: "숫자 4",
+        ShapeType.DIGIT_5.value: "숫자 5",
+        ShapeType.DIGIT_6.value: "숫자 6",
+        ShapeType.DIGIT_7.value: "숫자 7",
+        ShapeType.DIGIT_8.value: "숫자 8",
+        ShapeType.DIGIT_9.value: "숫자 9",
         ShapeType.CUSTOM.value: "사용자 정의",
     }
     

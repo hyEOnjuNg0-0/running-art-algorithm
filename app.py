@@ -4,6 +4,7 @@ RAcourse-Algorithm 메인 애플리케이션
 """
 import streamlit as st
 import time
+import logging
 
 # 페이지 설정 (가장 먼저 호출되어야 함)
 st.set_page_config(
@@ -18,6 +19,13 @@ from src.presentation.components.sidebar import render_sidebar
 from src.presentation.components.map_view import render_map, render_map_instructions
 from src.presentation.components.route_cards import render_route_cards, render_route_summary
 from src.presentation.mock_data import generate_mock_routes
+from src.service.route_search_service import (
+    RouteSearchService, SearchStatus, create_search_request
+)
+
+# 로깅 설정
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 
 def main():
@@ -95,33 +103,112 @@ def _render_loading_state():
     
     with col2:
         st.markdown("---")
-        with st.spinner("🔍 최적의 경로를 찾고 있습니다..."):
-            # Mock 로딩 시뮬레이션
-            progress_bar = st.progress(0)
-            status_text = st.empty()
-            
-            steps = [
-                "지도 데이터 로딩 중...",
-                "도형 분석 중...",
-                "경로 탐색 중...",
-                "최적화 중...",
-                "결과 정리 중...",
-            ]
-            
-            for i, step in enumerate(steps):
-                status_text.text(step)
-                progress_bar.progress((i + 1) * 20)
-                time.sleep(0.3)  # 시뮬레이션용 딜레이
-            
-            status_text.text("완료!")
-            time.sleep(0.2)
         
-        # Mock 데이터로 결과 설정
-        center = st.session_state.get('map_center', [37.5665, 126.9780])
-        mock_routes = generate_mock_routes(center[0], center[1])
-        st.session_state.routes = mock_routes
+        # 실제 검색 수행 여부 확인
+        use_real_search = st.session_state.get('use_real_search', False)
+        
+        if use_real_search:
+            _perform_real_search()
+        else:
+            _perform_mock_search()
+
+
+def _perform_real_search():
+    """실제 경로 탐색 수행"""
+    progress_bar = st.progress(0)
+    status_text = st.empty()
+    info_text = st.empty()
+    
+    status_messages = {
+        SearchStatus.LOADING_DATA: "🗺️ 지도 데이터 로딩 중...",
+        SearchStatus.PROCESSING_SHAPE: "📐 도형 분석 중...",
+        SearchStatus.SEARCHING_ROUTES: "🔍 경로 탐색 중...",
+        SearchStatus.FILTERING_RESULTS: "⚡ 결과 최적화 중...",
+        SearchStatus.COMPLETED: "✅ 완료!",
+        SearchStatus.ERROR: "❌ 오류 발생",
+    }
+    
+    status_info = {
+        SearchStatus.LOADING_DATA: "💡 첫 로딩 시 OpenStreetMap에서 데이터를 가져옵니다 (오래 걸릴 수 있습니다)",
+        SearchStatus.PROCESSING_SHAPE: "",
+        SearchStatus.SEARCHING_ROUTES: "💡 최적의 경로를 탐색하고 있습니다...",
+        SearchStatus.FILTERING_RESULTS: "",
+    }
+    
+    def update_progress(status: SearchStatus, progress: float):
+        status_text.text(status_messages.get(status, "처리 중..."))
+        progress_bar.progress(min(progress, 1.0))
+        info = status_info.get(status, "")
+        if info:
+            info_text.caption(info)
+        else:
+            info_text.empty()
+    
+    try:
+        # 검색 요청 생성
+        bbox = st.session_state.get('bounding_box')
+        shape_type = st.session_state.get('shape_type', 'heart')
+        custom_points = st.session_state.get('custom_points', [])
+        target_distance = st.session_state.get('target_distance', 5.0)
+        max_traffic_lights = st.session_state.get('max_traffic_lights', 5)
+        
+        request = create_search_request(
+            bbox_dict=bbox,
+            shape_type=shape_type,
+            custom_points=custom_points,
+            target_distance=target_distance,
+            max_traffic_lights=max_traffic_lights
+        )
+        
+        # 서비스 호출
+        service = RouteSearchService(use_cache=True)
+        response = service.search(request, progress_callback=update_progress)
+        
+        if response.status == SearchStatus.COMPLETED:
+            st.session_state.routes = response.routes
+            if not response.routes:
+                set_error("조건에 맞는 경로를 찾지 못했습니다. 영역을 넓히거나 조건을 완화해보세요.")
+        else:
+            set_error(response.error_message or "경로 탐색에 실패했습니다")
+        
+    except Exception as e:
+        logger.error(f"검색 실패: {e}")
+        set_error(f"경로 탐색 중 오류가 발생했습니다: {str(e)}")
+    
+    finally:
         st.session_state.is_loading = False
+        st.session_state.use_real_search = False
         st.rerun()
+
+
+def _perform_mock_search():
+    """Mock 검색 수행 (테스트용)"""
+    with st.spinner("🔍 최적의 경로를 찾고 있습니다..."):
+        progress_bar = st.progress(0)
+        status_text = st.empty()
+        
+        steps = [
+            "지도 데이터 로딩 중...",
+            "도형 분석 중...",
+            "경로 탐색 중...",
+            "최적화 중...",
+            "결과 정리 중...",
+        ]
+        
+        for i, step in enumerate(steps):
+            status_text.text(step)
+            progress_bar.progress((i + 1) * 20)
+            time.sleep(0.3)
+        
+        status_text.text("완료!")
+        time.sleep(0.2)
+    
+    # Mock 데이터로 결과 설정
+    center = st.session_state.get('map_center', [37.5665, 126.9780])
+    mock_routes = generate_mock_routes(center[0], center[1])
+    st.session_state.routes = mock_routes
+    st.session_state.is_loading = False
+    st.rerun()
 
 
 def _handle_search():
@@ -132,6 +219,9 @@ def _handle_search():
     if not bbox:
         set_error("지도에서 영역을 먼저 선택해주세요")
         return
+    
+    # 실제 검색 사용 여부 설정
+    st.session_state.use_real_search = True
     
     # 검색 시작
     clear_error()

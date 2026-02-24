@@ -62,17 +62,22 @@ class OSMGraphRepository(GraphRepository):
             도로 네트워크 그래프
         """
         try:
-            logger.info(f"OSM 그래프 로딩: bbox={bbox}, network_type={network_type}")
+            logger.info(f"OSM 그래프 로딩 시작: bbox={bbox}, network_type={network_type}")
             
-            # osmnx로 그래프 가져오기
+            # osmnx v2.0+ API: bbox를 튜플로 전달 (north, south, east, west)
+            bbox_tuple = (bbox.north, bbox.south, bbox.east, bbox.west)
+            
+            import time
+            start_time = time.time()
+            
             G = ox.graph_from_bbox(
-                north=bbox.north,
-                south=bbox.south,
-                east=bbox.east,
-                west=bbox.west,
+                bbox=bbox_tuple,
                 network_type=network_type,
                 simplify=True
             )
+            
+            elapsed = time.time() - start_time
+            logger.info(f"OSM 그래프 로딩 완료: {elapsed:.1f}초 소요")
             
             return self._convert_to_road_graph(G)
             

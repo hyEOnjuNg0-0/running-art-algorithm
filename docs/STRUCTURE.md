@@ -13,7 +13,6 @@ RAcourse-Algorithm/
 │   ├── 04_PHASE4_COST_FUNCTION.md      # Phase 4: 비용 함수 명세
 │   ├── 05_PHASE5_ALGO.md               # Phase 5: 알고리즘 명세
 │   ├── 06_PHASE6_INTEGRRATION.md       # Phase 6: 통합 명세
-│   ├── OUTLINE.md                      # 프로젝트 전체 개요
 │   ├── STRUCTURE.md                    # 디렉토리 구조 (현재 파일)
 │   └── TECHSPEC.md                     # 사용 기술 스택
 │
@@ -61,15 +60,46 @@ RAcourse-Algorithm/
 │   │                                   # - CostCalculator: 통합 비용 계산기
 │   │                                   # - CostResult: 비용 계산 결과 데이터
 │   │
+│   ├── algorithm/                      # 경로 탐색 알고리즘 레이어
+│   │   ├── __init__.py                 # 모듈 초기화 및 공개 API
+│   │   ├── weight_sampler.py           # 가중치 샘플링
+│   │   │                               # - WeightVector: 가중치 벡터 (α, β, γ)
+│   │   │                               # - WeightSampler: Dirichlet 분포 샘플러
+│   │   │                               # - Dir(1,1,1)에서 20개 가중치 조합 생성
+│   │   ├── astar.py                    # A* 경로 탐색 알고리즘
+│   │   │                               # - PathCandidate: 경로 후보 데이터
+│   │   │                               # - AStarPathFinder: A* 기반 경로 탐색기
+│   │   │                               # - 휴리스틱 함수 (목표 곡선 거리 기반)
+│   │   │                               # - 순환 경로 및 목표점 경로 탐색
+│   │   ├── pareto.py                   # Pareto 최적화
+│   │   │                               # - ParetoCandidate: Pareto 후보 경로
+│   │   │                               # - ParetoFilter: Non-dominated 필터링
+│   │   │                               # - Pareto Dominance 판정
+│   │   │                               # - 혼잡 거리 기반 다양성 선택
+│   │   └── route_finder.py             # 경로 탐색 통합 모듈
+│   │                                   # - RouteSearchConfig: 탐색 설정
+│   │                                   # - RouteFinder: 통합 경로 탐색기
+│   │                                   # - 가중치 샘플링 + A* + Pareto 필터링
+│   │                                   # - 병렬/순차 탐색 지원
+│   │
 │   ├── domain/                         # 도메인 레이어 (핵심 비즈니스 로직)
 │   │   ├── __init__.py
 │   │   └── entities.py                 # 도메인 엔티티 정의
 │   │                                   # - Coordinate: 위도/경도 좌표
 │   │                                   # - BoundingBox: 지도 범위
 │   │                                   # - Shape: 모양 정보
-│   │                                   # - Constraints: 제약 조건
+│   │                                   # - Constraints: 제약 조건 (검증 포함)
 │   │                                   # - RouteInfo: 경로 정보
 │   │                                   # - SearchResult: 검색 결과
+│   │
+│   ├── service/                        # 서비스 레이어 (애플리케이션 로직)
+│   │   ├── __init__.py                 # 모듈 초기화 및 공개 API
+│   │   └── route_search_service.py     # 경로 탐색 서비스
+│   │                                   # - SearchStatus: 탐색 상태 열거형
+│   │                                   # - SearchRequest: 탐색 요청 데이터
+│   │                                   # - SearchResponse: 탐색 응답 데이터
+│   │                                   # - RouteSearchService: 통합 파이프라인
+│   │                                   # - create_search_request: UI 입력 변환
 │   │
 │   └── presentation/                   # 프레젠테이션 레이어 (UI)
 │       ├── __init__.py
@@ -96,5 +126,17 @@ RAcourse-Algorithm/
     ├── test_data_entities.py           # 데이터 레이어 엔티티 테스트
     ├── test_cache_service.py           # 캐싱 서비스 테스트
     ├── test_shape.py                   # 도형 처리 테스트
-    └── test_cost_function.py           # 비용 함수 테스트
+    ├── test_cost_function.py           # 비용 함수 테스트
+    ├── test_algorithm.py               # 경로 탐색 알고리즘 테스트
+    │                                   # - WeightSampler 테스트
+    │                                   # - ParetoFilter 테스트
+    │                                   # - AStarPathFinder 테스트
+    │                                   # - RouteFinder 테스트
+    └── test_integration.py             # 통합 테스트
+                                        # - SearchRequest 생성 테스트
+                                        # - RouteSearchService 테스트
+                                        # - ShapeProcessor 통합 테스트
+                                        # - RouteFinder 통합 테스트
+                                        # - End-to-End 파이프라인 테스트
+                                        # - 엣지 케이스 테스트
 

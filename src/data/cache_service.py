@@ -71,24 +71,34 @@ class GraphCacheService:
         Returns:
             캐시된 그래프 (없으면 None)
         """
-        cache_file = self.cache_dir / f"{cache_key}.pkl"
+        # JSON 캐시 우선 확인
+        json_file = self.cache_dir / f"{cache_key}.json"
+        if json_file.exists():
+            try:
+                graph = self._load_from_json(json_file)
+                if graph:
+                    logger.info(f"캐시 히트 (JSON): {cache_key}")
+                    return graph
+            except Exception as e:
+                logger.warning(f"JSON 캐시 로드 실패: {e}")
+
+        # 기존 pickle 캐시 확인 (하위 호환)
+        pkl_file = self.cache_dir / f"{cache_key}.pkl"
+        if pkl_file.exists():
+            try:
+                with open(pkl_file, 'rb') as f:
+                    graph = pickle.load(f)
+                logger.info(f"캐시 히트 (pickle): {cache_key}")
+                return graph
+            except Exception as e:
+                logger.warning(f"pickle 캐시 로드 실패: {e}")
         
-        if not cache_file.exists():
-            logger.debug(f"캐시 미스: {cache_key}")
-            return None
-        
-        try:
-            with open(cache_file, 'rb') as f:
-                graph = pickle.load(f)
-            logger.info(f"캐시 히트: {cache_key}")
-            return graph
-        except Exception as e:
-            logger.warning(f"캐시 로드 실패: {e}")
-            return None
+        logger.debug(f"캐시 미스: {cache_key}")
+        return None
     
     def set(self, cache_key: str, graph: RoadGraph) -> bool:
         """
-        그래프를 캐시에 저장
+        그래프를 캐시에 저장(JSON 형식)
         
         Args:
             cache_key: 캐시 키
@@ -97,16 +107,75 @@ class GraphCacheService:
         Returns:
             저장 성공 여부
         """
-        cache_file = self.cache_dir / f"{cache_key}.pkl"
+        cache_file = self.cache_dir / f"{cache_key}.json"
         
         try:
-            with open(cache_file, 'wb') as f:
-                pickle.dump(graph, f)
+            self._save_to_json(graph, cache_file)
             logger.info(f"캐시 저장: {cache_key} ({graph.node_count} 노드, {graph.edge_count} 엣지)")
             return True
         except Exception as e:
             logger.error(f"캐시 저장 실패: {e}")
             return False
+    
+    def _save_to_json(self, graph: RoadGraph, filepath: Path) -> None:
+        """그래프를 JSON 파일로 저장"""
+        data = {
+            "nodes": [
+                {
+                    "id": node.id,
+                    "lat": node.lat,
+                    "lng": node.lng,
+                    "has_traffic_light": node.has_traffic_light
+                }
+                for node in graph.nodes.values()
+            ],
+            "edges": [
+                {
+                    "id": edge.id,
+                    "source_id": edge.source_id,
+                    "target_id": edge.target_id,
+                    "length_m": edge.length_m,
+                    "road_type": edge.road_type.value,
+                    "name": edge.name,
+                    "is_oneway": edge.is_oneway
+                }
+                for edge in graph.edges.values()
+            ]
+        }
+        
+        with open(filepath, 'w', encoding='utf-8') as f:
+            json.dump(data, f, ensure_ascii=False)
+    
+    def _load_from_json(self, filepath: Path) -> Optional[RoadGraph]:
+        """JSON 파일에서 그래프 로드"""
+        with open(filepath, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+        
+        graph = RoadGraph()
+        
+        for node_data in data.get("nodes", []):
+            node = Node(
+                id=node_data["id"],
+                lat=node_data["lat"],
+                lng=node_data["lng"],
+                has_traffic_light=node_data.get("has_traffic_light", False)
+            )
+            graph.add_node(node)
+        
+        for edge_data in data.get("edges", []):
+            road_type = RoadType(edge_data.get("road_type", "unknown"))
+            edge = Edge(
+                id=edge_data["id"],
+                source_id=edge_data["source_id"],
+                target_id=edge_data["target_id"],
+                length_m=edge_data["length_m"],
+                road_type=road_type,
+                name=edge_data.get("name"),
+                is_oneway=edge_data.get("is_oneway", False)
+            )
+            graph.add_edge(edge)
+        
+        return graph
     
     def delete(self, cache_key: str) -> bool:
         """
@@ -118,12 +187,13 @@ class GraphCacheService:
         Returns:
             삭제 성공 여부
         """
-        cache_file = self.cache_dir / f"{cache_key}.pkl"
-        
         try:
-            if cache_file.exists():
-                cache_file.unlink()
-                logger.info(f"캐시 삭제: {cache_key}")
+            # JSON과 pickle 둘 다 삭제
+            for ext in [".json", ".pkl"]:
+                cache_file = self.cache_dir / f"{cache_key}{ext}"
+                if cache_file.exists():
+                    cache_file.unlink()
+                    logger.info(f"캐시 삭제: {cache_key}{ext}")
             return True
         except Exception as e:
             logger.error(f"캐시 삭제 실패: {e}")
@@ -137,12 +207,13 @@ class GraphCacheService:
             삭제된 파일 수
         """
         count = 0
-        for cache_file in self.cache_dir.glob("*.pkl"):
-            try:
-                cache_file.unlink()
-                count += 1
-            except Exception as e:
-                logger.warning(f"캐시 파일 삭제 실패: {cache_file}, {e}")
+        for ext in ["*.json", "*.pkl"]:
+            for cache_file in self.cache_dir.glob(ext):
+                try:
+                    cache_file.unlink()
+                    count += 1
+                except Exception as e:
+                    logger.warning(f"캐시 파일 삭제 실패: {cache_file}, {e}")
         
         logger.info(f"캐시 전체 삭제: {count}개 파일")
         return count
@@ -154,7 +225,7 @@ class GraphCacheService:
         Returns:
             캐시 통계 딕셔너리
         """
-        cache_files = list(self.cache_dir.glob("*.pkl"))
+        cache_files = list(self.cache_dir.glob("*.json")) + list(self.cache_dir.glob("*.pkl"))
         total_size = sum(f.stat().st_size for f in cache_files)
         
         return {

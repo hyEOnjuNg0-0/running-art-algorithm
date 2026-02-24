@@ -52,10 +52,40 @@ class BoundingBox:
             lng=(self.east + self.west) / 2
         )
     
+    @property
+    def width(self) -> float:
+        """경도 방향 너비"""
+        return self.east - self.west
+    
+    @property
+    def height(self) -> float:
+        """위도 방향 높이"""
+        return self.north - self.south
+    
     def contains(self, coord: Coordinate) -> bool:
         """좌표가 범위 내에 있는지 확인"""
         return (self.south <= coord.lat <= self.north and
                 self.west <= coord.lng <= self.east)
+    
+    def expand(self, ratio: float = 0.2) -> 'BoundingBox':
+        """
+        범위를 비율만큼 확장
+        
+        Args:
+            ratio: 확장 비율 (기본 20%)
+            
+        Returns:
+            확장된 BoundingBox
+        """
+        lat_margin = self.height * ratio
+        lng_margin = self.width * ratio
+        
+        return BoundingBox(
+            north=self.north + lat_margin,
+            south=self.south - lat_margin,
+            east=self.east + lng_margin,
+            west=self.west - lng_margin
+        )
 
 
 @dataclass
@@ -75,6 +105,12 @@ class Constraints:
     target_distance_km: float  # 목표 거리 (km)
     max_traffic_lights: int    # 허용 최대 신호등 개수
     distance_tolerance: float = 0.1  # 거리 허용 오차 (기본 10%)
+    
+    def __post_init__(self):
+        if self.target_distance_km <= 0:
+            raise ValueError("목표 거리는 양수여야 합니다")
+        if self.max_traffic_lights < 0:
+            raise ValueError("최대 신호등 개수는 0 이상이어야 합니다")
 
 
 @dataclass
