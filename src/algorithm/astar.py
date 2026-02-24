@@ -101,8 +101,20 @@ class AStarPathFinder:
         Returns:
             최적 경로 후보 (없으면 None)
         """
+        import logging
+        logger = logging.getLogger(__name__)
+        
         start_node = self.graph.get_node(start_node_id)
         if not start_node:
+            logger.warning(f"시작 노드 {start_node_id}를 찾을 수 없음")
+            return None
+        
+        # 시작 노드의 이웃 확인
+        neighbors = self.graph.get_neighbors(start_node_id)
+        logger.info(f"시작 노드 {start_node_id}의 이웃: {len(neighbors)}개")
+        
+        if not neighbors:
+            logger.warning("시작 노드에 연결된 이웃이 없음")
             return None
         
         # 우선순위 큐: (f_cost, node_id, path, g_cost, path_length, traffic_lights)
@@ -117,12 +129,16 @@ class AStarPathFinder:
         ))
         
         # 방문 기록: (node_id, path_length_bucket) -> best_cost
+        # 버킷 크기를 500m로 늘려서 더 많은 경로 탐색 허용
         visited: Dict[Tuple[int, int], float] = {}
         
         best_candidate: Optional[PathCandidate] = None
         best_cost = float('inf')
+        candidates_found = 0
         
         iterations = 0
+        max_path_length = 0.0
+        
         while open_set and iterations < max_iterations:
             iterations += 1
             
@@ -133,10 +149,13 @@ class AStarPathFinder:
             current_length = current.path_length_km
             current_lights = current.traffic_light_count
             
+            max_path_length = max(max_path_length, current_length)
+            
             # 시작점으로 돌아온 순환 경로 발견 (최소 4개 노드 필요)
-            # 거리 제한 없음 - ShapeDistance와 LengthPenalty가 최적 경로 결정
             if (current_node_id == start_node_id and 
                 len(current_path) > 3):
+                
+                candidates_found += 1
                 
                 # 비용 계산 (ShapeDistance + LengthPenalty + CrossingPenalty)
                 cost_result = self.cost_calculator.calculate(current_path, self.graph)
@@ -155,8 +174,8 @@ class AStarPathFinder:
                     )
                 continue
             
-            # 방문 체크 (거리 버킷 기준)
-            length_bucket = int(current_length * 10)  # 100m 단위 버킷
+            # 방문 체크 (거리 버킷 기준) - 500m 단위로 완화
+            length_bucket = int(current_length * 2)  # 500m 단위 버킷
             visit_key = (current_node_id, length_bucket)
             
             if visit_key in visited and visited[visit_key] <= current_g:
@@ -169,8 +188,9 @@ class AStarPathFinder:
                 continue
             
             for neighbor_id in self.graph.get_neighbors(current_node_id):
-                # 이미 경로에 있는 노드는 시작점만 허용
-                if neighbor_id in current_path[1:]:
+                # 시작점은 항상 허용 (순환 경로 완성을 위해)
+                # 다른 노드는 경로에 없어야 함 (단순 경로 유지)
+                if neighbor_id != start_node_id and neighbor_id in current_path:
                     continue
                 
                 neighbor_node = self.graph.get_node(neighbor_id)
@@ -208,6 +228,14 @@ class AStarPathFinder:
                     path_length_km=new_length,
                     traffic_light_count=new_lights
                 ))
+        
+        # 탐색 결과 로깅
+        if iterations >= max_iterations:
+            logger.info(f"최대 반복 횟수 도달: {iterations}, 후보 {candidates_found}개 발견")
+        else:
+            logger.info(f"탐색 공간 소진: {iterations}회 반복, 후보 {candidates_found}개 발견")
+        
+        logger.info(f"최대 탐색 거리: {max_path_length:.2f}km, 방문 상태: {len(visited)}개")
         
         return best_candidate
     

@@ -177,7 +177,6 @@ def _render_route_card(
                 on_select(route.route_id)
             else:
                 st.session_state.selected_route_id = route.route_id
-                st.rerun()
         
         if is_selected:
             st.markdown("</div>", unsafe_allow_html=True)

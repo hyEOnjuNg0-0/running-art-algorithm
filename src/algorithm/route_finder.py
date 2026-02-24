@@ -140,14 +140,39 @@ class RouteFinder:
         return self._to_route_infos(top_candidates)
     
     def _find_start_node(self, target_curve: List[Coordinate]) -> Optional[int]:
-        """목표 곡선에서 시작점에 가장 가까운 노드 찾기"""
+        """
+        목표 곡선에서 시작점에 가장 가까운 교차로 노드 찾기
+        
+        순환 경로를 만들려면 이웃이 2개 이상인 노드(교차로)에서 시작해야 함
+        """
         if not target_curve:
             return None
         
-        # 곡선의 첫 번째 점에서 가장 가까운 노드
         start_coord = target_curve[0]
-        nearest = self.graph.find_nearest_node(start_coord.lat, start_coord.lng)
         
+        # 이웃이 2개 이상인 노드(교차로) 중에서 가장 가까운 노드 찾기
+        best_node = None
+        best_distance = float('inf')
+        
+        for node in self.graph.nodes.values():
+            neighbor_count = len(self.graph.get_neighbors(node.id))
+            
+            # 이웃이 2개 이상인 노드만 고려 (순환 경로 가능)
+            if neighbor_count < 2:
+                continue
+            
+            distance = node.distance_to_coord(start_coord.lat, start_coord.lng)
+            if distance < best_distance:
+                best_distance = distance
+                best_node = node
+        
+        if best_node:
+            logger.info(f"시작 노드 선택: {best_node.id} (이웃 {len(self.graph.get_neighbors(best_node.id))}개, 거리 {best_distance:.3f}km)")
+            return best_node.id
+        
+        # 교차로가 없으면 가장 가까운 노드 사용 (fallback)
+        logger.warning("교차로 노드를 찾을 수 없어 가장 가까운 노드 사용")
+        nearest = self.graph.find_nearest_node(start_coord.lat, start_coord.lng)
         return nearest.id if nearest else None
     
     def _generate_rotated_curves(

@@ -232,7 +232,7 @@ def _handle_search():
 def _handle_route_select(route_id: int):
     """경로 선택 핸들러"""
     st.session_state.selected_route_id = route_id
-    st.rerun()
+    # rerun 제거 - session_state 변경만으로 다음 렌더링에 반영됨
 
 
 # 커스텀 CSS

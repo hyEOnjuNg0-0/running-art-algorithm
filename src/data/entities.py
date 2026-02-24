@@ -63,6 +63,32 @@ class Node:
         c = 2 * math.asin(math.sqrt(a))
         
         return R * c
+    
+    def distance_to_coord(self, lat: float, lng: float) -> float:
+        """
+        특정 좌표까지의 거리 계산 (Haversine 공식)
+        
+        Args:
+            lat: 대상 위도
+            lng: 대상 경도
+            
+        Returns:
+            거리 (km)
+        """
+        import math
+        
+        R = 6371  # 지구 반지름 (km)
+        
+        lat1, lng1 = math.radians(self.lat), math.radians(self.lng)
+        lat2, lng2 = math.radians(lat), math.radians(lng)
+        
+        dlat = lat2 - lat1
+        dlng = lng2 - lng1
+        
+        a = math.sin(dlat/2)**2 + math.cos(lat1) * math.cos(lat2) * math.sin(dlng/2)**2
+        c = 2 * math.asin(math.sqrt(a))
+        
+        return R * c
 
 
 @dataclass(frozen=True)

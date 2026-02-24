@@ -82,7 +82,7 @@ def render_map(
         m,
         width=None,  # 컨테이너 너비에 맞춤
         height=500,
-        returned_objects=["all_drawings", "last_active_drawing", "bounds", "center", "zoom"],
+        returned_objects=["all_drawings", "last_active_drawing"],
         key="main_map",
     )
     
@@ -154,16 +154,6 @@ def _process_map_interaction(map_data: Dict[str, Any]):
     """지도 상호작용 결과 처리"""
     if not map_data:
         return
-    
-    # 중심 및 줌 업데이트
-    if map_data.get('center'):
-        st.session_state.map_center = [
-            map_data['center']['lat'],
-            map_data['center']['lng']
-        ]
-    
-    if map_data.get('zoom'):
-        st.session_state.map_zoom = map_data['zoom']
     
     # 그리기 결과 처리 (사각형 범위 선택만)
     last_drawing = map_data.get('last_active_drawing')
